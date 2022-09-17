@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  ddns-server:
+    build: ./docker
+    container_name: ddns-server
+    environment:
+      # TODO: Set this to the domain which DDNS is supposed to resolve
+      - DDNS_DOMAIN=test.com
+    volumes:
+      # Public key used to authenticate to the server
+      - ./conf/ssh.key.pub:/ddns/ssh.key.pub
+    ports:
+      - "2222:22"
+

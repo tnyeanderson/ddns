@@ -2,6 +2,7 @@
 
 set -e
 
+# shellcheck disable=SC1091
 . /scripts/utils.sh
 
 if [ -z "${DDNS_DOMAIN}" ]; then

@@ -5,6 +5,7 @@ set -e
 ip=$1
 ddns_domain="$(cat /run/ddns_domain)"
 
+# shellcheck disable=SC1091
 . /scripts/utils.sh
 
 if [ -n "${SSH_ORIGINAL_COMMAND}" ]; then

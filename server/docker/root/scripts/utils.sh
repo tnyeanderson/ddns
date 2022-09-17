@@ -7,6 +7,5 @@ debug() {
 }
 
 err() {
-	>&2 echo "ERROR: $*"
+	echo "ERROR: $*" >&2
 }
-

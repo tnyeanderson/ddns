@@ -19,7 +19,7 @@ debug() {
 }
 
 err() {
-	>&2 echo "ERROR: $*"
+	echo "ERROR: $*" >&2
 }
 
 if [ -z "${SSH_HOST}" ]; then
@@ -41,7 +41,7 @@ ip_parser='^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'
 
 # Check response
 if ! echo "$new_ip" | grep -q -E "${ip_parser}"; then
-	>&2 echo "icanhazip.com did not return an IP address"
+	err "icanhazip.com did not return an IP address"
 	exit 2
 fi
 

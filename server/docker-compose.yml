@@ -12,4 +12,5 @@ services:
       - ./conf/ssh.key.pub:/ddns/ssh.key.pub
     ports:
       - "2222:22"
+      - "53:53"
 

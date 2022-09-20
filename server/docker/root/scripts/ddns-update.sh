@@ -30,3 +30,8 @@ if ! echo "${ip}" | grep -q -E "${ip_parser}"; then
 fi
 
 echo "${ip} ${ddns_domain}" >/ddns/hosts.d/ddns
+
+# To prevent the old result from showing up, refresh dnsmasq.
+# See the dnsmasq man pages under `--dhcp-hostsdir` for more info.
+# This command has to be run by root, see the sudoers file.
+sudo killall -s SIGHUP dnsmasq

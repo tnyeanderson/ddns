@@ -2,7 +2,7 @@ FROM alpine
 
 WORKDIR ddns
 
-RUN apk add --no-cache dnsmasq openssh supervisor
+RUN apk add --no-cache dnsmasq openssh supervisor sudo
 
 RUN adduser -H -D ddns && passwd -d ddns
 

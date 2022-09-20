@@ -15,6 +15,8 @@ dnsmasq \
 	--no-resolv \
 	--no-hosts \
 	--hostsdir=/ddns/hosts.d \
+	--cache-size=0 \
+	--max-ttl=60 \
 	--auth-zone "${DDNS_DOMAIN}" \
 	--auth-server "${DDNS_DOMAIN}" \
 	--log-facility=- \

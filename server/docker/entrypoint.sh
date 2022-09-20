@@ -6,6 +6,7 @@ set -e
 . /scripts/utils.sh
 
 authorized_keys=/etc/ssh/authorized_keys
+hosts_dir=/ddns/hosts.d
 
 if [ -z "${DDNS_DOMAIN}" ]; then
 	err "The domain being controlled by DDNS must be set with DDNS_DOMAIN"
@@ -24,6 +25,11 @@ ssh-keygen -A
 public_key="$(head -n 1 /ddns/ssh.key.pub)"
 
 mkdir -p "${authorized_keys}"
+
+# Set up hosts.d
+mkdir -p "${hosts_dir}"
+chmod 775 "${hosts_dir}"
+chgrp ddns "${hosts_dir}"
 
 cat >"${authorized_keys}/ddns" <<-EOF
 	command="/scripts/ddns-update.sh" ${public_key}

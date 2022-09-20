@@ -1,3 +1,5 @@
 # Project specific
 server/conf
+server/ddns.env
 agent/conf
+agent/ddns.env

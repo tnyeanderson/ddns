@@ -4,9 +4,8 @@ services:
   ddns-server:
     build: ./docker
     container_name: ddns-server
-    environment:
-      # TODO: Set this to the domain which DDNS is supposed to resolve
-      - DDNS_DOMAIN=test.com
+    env_file:
+      - ddns.env
     volumes:
       # Public key used to authenticate to the server
       - ./conf/ssh.key.pub:/ddns/ssh.key.pub

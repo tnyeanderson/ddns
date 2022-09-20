@@ -15,8 +15,8 @@ ssh-keygen -t ed25519 -C ddns -f agent/conf/ssh.key -N ''
 > NOTE: Stop here and make sure the server component is running before
 continuing!
 
-Set the `SSH_HOST` variable in `agent/docker-compose.yml` to the server
-component host. If needed, adjust `SSH_PORT`.
+Set the `SSH_HOST` and `SSH_PORT` environment variables in `agent/ddns.env`.
+Use `agent/ddns.env.example` as a template/guide.
 
 Build and run the agent to make sure it is working:
 ```bash
@@ -35,7 +35,8 @@ Create a cron entry to run the agent regularly with `/etc/cron.d/ddns`:
 Create `server/conf` and copy `agent/conf/ssh.key.pub` from the previous step
 into it.
 
-Set the `DDNS_DOMAIN` environment variable in `server/docker-compose.yml`
+Set the `DDNS_DOMAIN` environment variable in `server/ddns.env`. Use
+`server/ddns.env.example` as a template/guide.
 
 Build and start the container:
 ```bash

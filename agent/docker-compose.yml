@@ -7,11 +7,8 @@ services:
     # Uncomment to force a DDNS update
     # Even if the address has not changed
     #command: force
-    environment:
-      # TODO: Adjust host and port as needed
-      # Should point to the server
-      - SSH_HOST=10.10.10.10
-      - SSH_PORT=2222
+    env_file:
+      - ddns.env
     volumes:
       - ./conf:/ddns
 

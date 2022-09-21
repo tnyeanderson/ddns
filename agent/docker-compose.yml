@@ -4,9 +4,8 @@ services:
   ddns-agent:
     build: ./docker
     container_name: ddns-agent
-    # Uncomment to force a DDNS update
-    # Even if the address has not changed
-    #command: force
+    # Uncomment to force a specific IP
+    #command: 100.100.100.100
     env_file:
       - ddns.env
     volumes:

@@ -3,10 +3,22 @@
 ### CONFIGURATION: Set these as environment variables
 #SSH_HOST="bar.com"
 #SSH_PORT="2222"
+#
+# Optional:
+#FORCE=yes
 
-# Set value to "force" to make update the DDNS entry
+new_ip=$1
+
+# Set value to "yes" to make update the DDNS entry
 # even if it hasn't changed
-force=$1
+# shellcheck disable=SC2153
+force=$FORCE
+
+if [ -n "${new_ip}" ]; then
+	# Always force if an IP was provided directly
+	echo "IP was provided directly: ${new_ip}"
+	force=yes
+fi
 
 remote_user=ddns
 cache_file=/ddns/current-ip
@@ -34,8 +46,10 @@ else
 	old_ip=""
 fi
 
-# Get new IP
-new_ip="$(curl -s icanhazip.com)"
+if [ -z "$new_ip" ]; then
+	# Get new IP
+	new_ip="$(curl -s icanhazip.com)"
+fi
 
 ip_parser='^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'
 
@@ -47,7 +61,7 @@ fi
 
 if [ "$old_ip" = "$new_ip" ]; then
 	debug "IP has not changed."
-	if [ "$force" = "force" ]; then
+	if [ "$force" = "yes" ]; then
 		echo "Forcing update"
 	else
 		debug "Exiting..."

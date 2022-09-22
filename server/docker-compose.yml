@@ -4,6 +4,7 @@ services:
   ddns-server:
     build: ./docker
     container_name: ddns-server
+    restart: unless-stopped
     env_file:
       - ddns.env
     volumes:

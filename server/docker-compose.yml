@@ -7,7 +7,6 @@ services:
     env_file:
       - ddns.env
     volumes:
-      # Public key used to authenticate to the server
       - ./conf:/ddns
     ports:
       - "2222:22"

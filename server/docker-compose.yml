@@ -11,5 +11,6 @@ services:
       - ./conf:/ddns
     ports:
       - "2222:22"
-      - "53:53"
+      - "53:53/tcp"
+      - "53:53/udp"
 

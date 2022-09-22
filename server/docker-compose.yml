@@ -8,7 +8,7 @@ services:
       - ddns.env
     volumes:
       # Public key used to authenticate to the server
-      - ./conf/ssh.key.pub:/ddns/ssh.key.pub
+      - ./conf:/ddns
     ports:
       - "2222:22"
       - "53:53"

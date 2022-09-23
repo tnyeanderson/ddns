@@ -7,6 +7,7 @@ set -e
 
 authorized_keys=/etc/ssh/authorized_keys
 hosts_dir=/ddns/hosts.d
+ssh_host_key=/ddns/ssh-host-keys/ssh_host_ed25519_key
 
 if [ -z "${DDNS_DOMAIN}" ]; then
 	err "The domain being controlled by DDNS must be set with DDNS_DOMAIN"
@@ -18,8 +19,11 @@ echo "${DDNS_DOMAIN}" >/run/ddns_domain
 
 ### Set up ssh
 
-# Generate host keys
-ssh-keygen -A
+# Generate host key
+if [ ! -f "${ssh_host_key}" ]; then
+	mkdir -p "$(dirname "${ssh_host_key}")"
+	ssh-keygen -t ed25519 -C ddns-host-key -f "${ssh_host_key}" -N ''
+fi
 
 # Only use the first line of the public key file for safety
 public_key="$(head -n 1 /ddns/ssh.key.pub)"

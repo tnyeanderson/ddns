@@ -106,5 +106,4 @@ the DDNS domain).
 
 - [ ] Multiple DDNS domains
 - [ ] Different services to get public IP
-- [ ] Proper host key verification
 

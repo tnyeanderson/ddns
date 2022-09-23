@@ -1,6 +1,7 @@
 PermitRootLogin no
 AllowUsers ddns
 
+HostKey=/ddns/ssh-host-keys/ssh_host_ed25519_key
 AuthorizedKeysFile /etc/ssh/authorized_keys/%u
 
 # Authentication security

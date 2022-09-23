@@ -23,6 +23,7 @@ fi
 remote_user=ddns
 cache_file=/ddns/current-ip
 ssh_keyfile=/ddns/ssh.key
+ssh_known_hosts=/ddns/known_hosts/ssh_host_ed25519_key.pub
 
 debug() {
 	if [ "${DEBUG}" = 'true' ]; then
@@ -38,6 +39,15 @@ if [ -z "${SSH_HOST}" ]; then
 	err "Missing required environment variable: SSH_HOST"
 	exit 1
 fi
+
+# Set up the host key trust
+if [ ! -f "${ssh_known_hosts}" ]; then
+	echo "Using ssh-keyscan to get the host key of the DDNS server"
+	mkdir -p "$(dirname "${ssh_known_hosts}")"
+	ssh-keyscan -t ed25519 -p 2222 "${SSH_HOST}" | tee "${ssh_known_hosts}"
+fi
+
+cp "${ssh_known_hosts}" /etc/ssh/ssh_known_hosts
 
 # Get old (cached) and current public IP
 if [ -f "${cache_file}" ]; then
@@ -78,6 +88,6 @@ conn="${remote_user}@${SSH_HOST}"
 # Using a "command" entry in the authorized_keys file
 cmd="/ddns-update.sh ${new_ip}"
 
-ssh -i "${ssh_keyfile}" -o "StrictHostKeyChecking no" -p "${SSH_PORT}" "${conn}" "${cmd}"
+ssh -i "${ssh_keyfile}" -p "${SSH_PORT}" "${conn}" "${cmd}"
 
 echo "${new_ip}" >"${cache_file}"

@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 ### CONFIGURATION: Set these as environment variables
 #SSH_HOST="bar.com"
 #SSH_PORT="2222"

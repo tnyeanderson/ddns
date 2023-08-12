@@ -89,7 +89,7 @@ The **dnshost** runs the **server** component, which consists of an SSH server
 (sshd) and a DNS server (dnsmasq). The **lanhost** runs the **agent** component
 with a cronjob. Each time the agent is run, it makes a request to icanhazip.com
 to obtain the public IP for **lanhost**. For a home server, this would be the
-WAN address, usually assigned by the ISPs DHCP service. It checks the newly
+WAN address, usually assigned by the ISP's DHCP service. It checks the newly
 received address against the last one it received, and if it has changed (or
 `$FORCE` is set), the agent makes an SSH request to the server component which
 updates the DNS entry.

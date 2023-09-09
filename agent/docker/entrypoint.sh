@@ -24,8 +24,10 @@ fi
 
 remote_user=ddns
 cache_file=/ddns/current-ip
-ssh_keyfile=/ddns/ssh.key
+ssh_keyfile=${SSH_PRIVATE_KEY:-/ddns/ssh.key}
 ssh_known_hosts=/ddns/known_hosts/ssh_host_ed25519_key.pub
+
+ssh_port=${SSH_PORT:-22}
 
 debug() {
 	if [ "${DEBUG}" = 'true' ]; then
@@ -46,7 +48,7 @@ fi
 if [ ! -f "${ssh_known_hosts}" ]; then
 	echo "Using ssh-keyscan to get the host key of the DDNS server"
 	mkdir -p "$(dirname "${ssh_known_hosts}")"
-	ssh-keyscan -t ed25519 -p 2222 "${SSH_HOST}" | tee "${ssh_known_hosts}"
+	ssh-keyscan -t ed25519 -p "${ssh_port}" "${SSH_HOST}" | tee "${ssh_known_hosts}"
 fi
 
 cp "${ssh_known_hosts}" /etc/ssh/ssh_known_hosts
@@ -90,6 +92,6 @@ conn="${remote_user}@${SSH_HOST}"
 # Using a "command" entry in the authorized_keys file
 cmd="/ddns-update.sh ${new_ip}"
 
-ssh -i "${ssh_keyfile}" -p "${SSH_PORT}" "${conn}" "${cmd}"
+ssh -i "${ssh_keyfile}" -p "${ssh_port}" "${conn}" "${cmd}"
 
 echo "${new_ip}" >"${cache_file}"

@@ -4,7 +4,7 @@ WORKDIR ddns
 
 RUN apk add --no-cache dnsmasq openssh supervisor sudo
 
-RUN adduser -H -D ddns && passwd -d ddns
+RUN adduser -D ddns && passwd -d ddns
 
 COPY root/ /
 

@@ -13,7 +13,7 @@ import (
 var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start a DDNS server",
-	Long:  "This will start an HTTP server and a DNS server",
+	Long:  "Start an HTTP server and a DNS server.",
 	Run: func(cmd *cobra.Command, args []string) {
 		s := &ddns.Server{}
 

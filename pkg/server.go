@@ -2,10 +2,12 @@ package ddns
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/miekg/dns"
 )
@@ -54,11 +56,33 @@ func (s *Server) Set(domain string, ip net.IP) {
 	s.Domains[domain] = ip
 }
 
-// TODO: Concurrency
+// Listen starts a DNS server and an HTTP server for the API, and blocks until
+// either of them exits.
 func (s *Server) Listen() error {
-	go s.listenHTTP(s.getHTTPListener())
-	s.listenDNS(s.getDNSListener())
-	return nil
+	wg := sync.WaitGroup{}
+	// If one exits, end the program
+	wg.Add(1)
+
+	var out error
+
+	go func() {
+		if err := s.listenHTTP(s.getHTTPListener()); err != nil {
+			slog.Error(err.Error())
+			out = err
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		if err := s.listenDNS(s.getDNSListener()); err != nil {
+			slog.Error(err.Error())
+			out = err
+		}
+		wg.Done()
+	}()
+
+	wg.Wait()
+	return out
 }
 
 func (s *Server) handleGetIP() http.HandlerFunc {
@@ -113,7 +137,7 @@ func (s *Server) handleUpdateIP() http.HandlerFunc {
 			return
 		}
 
-		s.Domains[domain] = ip
+		s.Set(domain, ip)
 		w.Write(nil)
 	}
 }

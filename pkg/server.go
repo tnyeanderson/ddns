@@ -4,16 +4,22 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"slices"
+	"regexp"
 	"strings"
 
 	"github.com/miekg/dns"
 )
 
+const (
+	DefaultDNSListener  = ":53"
+	DefaultHTTPListener = ":3345"
+)
+
 type Server struct {
 	// AllowedAPIKeys is a list of strings that will be allowed by the server
-	// when provided as a bearer token in the authorization header.
-	AllowedAPIKeys []string
+	// when provided as a bearer token in the authorization header. A nil matcher
+	// allows changing the DNS record for any domain (no restrictions).
+	AllowedAPIKeys map[string]*regexp.Regexp
 
 	// HTTPListener is the TCP address that will be passed to
 	// [http.ListenAndServe()].
@@ -28,6 +34,19 @@ type Server struct {
 	Domains map[string]net.IP
 }
 
+// Allow is a convenience function for adding API keys which are allowed to
+// change the DNS record for the domains matched by domainMatcher. Further
+// needs should be handled via [Server.AllowedAPIKeys] directly.  A nil
+// domainMatcher allows changing the DNS record for any domain (no
+// restrictions).
+func (s *Server) Allow(apiKey string, domainMatcher *regexp.Regexp) {
+	if s.AllowedAPIKeys == nil {
+		s.AllowedAPIKeys = map[string]*regexp.Regexp{}
+	}
+	s.AllowedAPIKeys[apiKey] = domainMatcher
+}
+
+// Set updates the DNS record for the provided domain.
 func (s *Server) Set(domain string, ip net.IP) {
 	if s.Domains == nil {
 		s.Domains = map[string]net.IP{}
@@ -35,43 +54,73 @@ func (s *Server) Set(domain string, ip net.IP) {
 	s.Domains[domain] = ip
 }
 
+// TODO: Concurrency
 func (s *Server) Listen() error {
 	go s.listenHTTP(s.getHTTPListener())
 	s.listenDNS(s.getDNSListener())
 	return nil
 }
 
-func (s *Server) listenHTTP(listener string) error {
-	http.HandleFunc("POST /api/v1/update", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("%+v\n", s.Domains)
+func (s *Server) handleGetIP() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ip, err := getCallerIP(r)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Write([]byte(ip.String()))
+	}
+}
+
+func (s *Server) handleUpdateIP() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Validate token
 		token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if !s.validateToken(token) {
 			w.WriteHeader(http.StatusUnauthorized)
-			w.Write(nil)
 			return
 		}
 
-		q := r.URL.Query()
-		domain := q.Get("domain")
-		ip := net.ParseIP(q.Get("ip"))
-
-		if domain == "" || ip == nil {
+		// Validate domain
+		domain := r.URL.Query().Get("domain")
+		if domain == "" {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write(nil)
 			return
 		}
 
-		// Only allow changing domains that already exist in the map
-		if _, ok := s.Domains[domain]; !ok {
+		// Only allow changing domains that are allowed by the token
+		if r := s.AllowedAPIKeys[token]; r != nil && !r.MatchString(domain) {
 			w.WriteHeader(http.StatusForbidden)
-			w.Write(nil)
+			return
+		}
+
+		// Determine IP
+		ipStr := r.URL.Query().Get("ip")
+		if ipStr == "auto" {
+			callerIP, err := getCallerIP(r)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			ipStr = callerIP.String()
+		}
+
+		// Validate IP
+		ip := net.ParseIP(ipStr)
+		if ip == nil || ip.IsLoopback() || ip.IsMulticast() || ip.IsUnspecified() {
+			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		s.Domains[domain] = ip
 		w.Write(nil)
-	})
+	}
+}
 
+func (s *Server) listenHTTP(listener string) error {
+	http.HandleFunc("GET /api/v1/ip", s.handleGetIP())
+	http.HandleFunc("POST /api/v1/update", s.handleUpdateIP())
 	return http.ListenAndServe(listener, nil)
 }
 
@@ -101,7 +150,17 @@ func (s *Server) listenDNS(listener string) error {
 }
 
 func (s *Server) validateToken(key string) bool {
-	return key != "" && slices.Contains(s.AllowedAPIKeys, key)
+	if key == "" {
+		return false
+	}
+
+	for k, _ := range s.AllowedAPIKeys {
+		if k == key {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *Server) getDNSListener() string {
@@ -115,4 +174,29 @@ func (s *Server) getHTTPListener() string {
 		return ":8989"
 	}
 	return s.HTTPListener
+}
+
+func getCallerIP(r *http.Request) (net.IP, error) {
+	// Use X-Real-Ip header if available
+	ip := r.Header.Get("X-Real-Ip")
+
+	// Use X-Forwarded-For header if available
+	if ip == "" {
+		ip = r.Header.Get("X-Forwarded-For")
+	}
+
+	// Use request.RemoteAddr
+	if ip == "" {
+		lastColon := strings.LastIndex(r.RemoteAddr, ":")
+		ip = r.RemoteAddr[:lastColon]
+		ip = strings.Trim(ip, "[]")
+	}
+
+	// Ensure it is a valid IP
+	out := net.ParseIP(ip)
+	if out == nil {
+		return nil, fmt.Errorf("not a valid ip: %s", ip)
+	}
+
+	return out, nil
 }

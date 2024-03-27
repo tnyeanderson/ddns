@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log"
+	"net"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -25,12 +26,13 @@ var agentCmd = &cobra.Command{
 			APIKey:        os.Getenv("DDNS_API_KEY"),
 		}
 
-		ip := ""
+		ip := "auto"
 
 		if len(args) == 2 {
 			ip = args[1]
-		} else {
-			ip = agent.MyIP()
+			if n := net.ParseIP(ip); n == nil {
+				log.Fatalf("not a valid ip: %s", ip)
+			}
 		}
 
 		if err := agent.UpdateIP(args[0], ip); err != nil {

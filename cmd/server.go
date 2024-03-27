@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log"
+	"regexp"
 
 	"github.com/spf13/cobra"
 	ddns "github.com/tnyeanderson/ddns/pkg"
@@ -13,9 +14,8 @@ var serverCmd = &cobra.Command{
 	Short: "Start a DDNS server",
 	Long:  "This will start an HTTP server and a DNS server",
 	Run: func(cmd *cobra.Command, args []string) {
-		s := &ddns.Server{
-			AllowedAPIKeys: []string{"mytesttoken"},
-		}
+		s := &ddns.Server{}
+		s.Allow("mytesttoken", regexp.MustCompile("hello.world"))
 		s.Set("hello.world", nil)
 		if err := s.Listen(); err != nil {
 			log.Fatal(err.Error())

@@ -25,7 +25,14 @@ var serverCmd = &cobra.Command{
 			s.DNSListener = v
 		}
 
-		s.Allow("mytesttoken", regexp.MustCompile("hello.world"))
+		if token := os.Getenv("DDNS_SERVER_TOKEN"); token != "" {
+			var r *regexp.Regexp
+			if pattern := os.Getenv("DDNS_SERVER_TOKEN_REGEX"); pattern != "" {
+				r = regexp.MustCompile(pattern)
+			}
+			s.Allow(token, r)
+		}
+
 		if err := s.Listen(); err != nil {
 			log.Fatal(err.Error())
 		}

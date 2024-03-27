@@ -11,13 +11,13 @@ import (
 
 // agentCmd represents the agent command
 var agentCmd = &cobra.Command{
-	Use:   "agent domain ip",
+	Use:   "agent domain [ip]",
 	Args:  cobra.MinimumNArgs(1),
 	Short: "DDNS update agent",
 	Long:  "Used to update the A record for a given domain",
 	Run: func(cmd *cobra.Command, args []string) {
 		server := "http://localhost:8989"
-		if v := os.Getenv("DDNS_SERVER_ADDR"); v != "" {
+		if v := os.Getenv("DDNS_API_SERVER"); v != "" {
 			server = v
 		}
 
@@ -27,7 +27,6 @@ var agentCmd = &cobra.Command{
 		}
 
 		ip := "auto"
-
 		if len(args) == 2 {
 			ip = args[1]
 			if n := net.ParseIP(ip); n == nil {
@@ -43,14 +42,4 @@ var agentCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(agentCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// agentCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// agentCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

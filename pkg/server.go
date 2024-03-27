@@ -165,13 +165,13 @@ func (s *Server) validateToken(key string) bool {
 
 func (s *Server) getDNSListener() string {
 	if s.DNSListener == "" {
-		return ":5333"
+		return DefaultDNSListener
 	}
 	return s.DNSListener
 }
 func (s *Server) getHTTPListener() string {
 	if s.HTTPListener == "" {
-		return ":8989"
+		return DefaultHTTPListener
 	}
 	return s.HTTPListener
 }

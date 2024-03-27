@@ -27,7 +27,6 @@ func (a *Agent) DetermineIP() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(string(body))
 	return string(body), nil
 }
 
@@ -40,10 +39,9 @@ func (a *Agent) UpdateIP(domain, ip string) error {
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", a.APIKey))
 	client := http.Client{}
-	res, err := client.Do(req)
+	_, err = client.Do(req)
 	if err != nil {
 		return err
 	}
-	fmt.Println(res)
 	return nil
 }

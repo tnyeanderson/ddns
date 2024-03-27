@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"regexp"
 
@@ -34,7 +34,8 @@ var serverCmd = &cobra.Command{
 		}
 
 		if err := s.Listen(); err != nil {
-			log.Fatal(err.Error())
+			slog.Error(err.Error())
+			os.Exit(1)
 		}
 	},
 }

@@ -60,22 +60,25 @@ func (s *Server) Set(domain string, ip net.IP) {
 // either of them exits.
 func (s *Server) Listen() error {
 	wg := sync.WaitGroup{}
+
 	// If one exits, end the program
 	wg.Add(1)
 
 	var out error
 
 	go func() {
-		if err := s.listenHTTP(s.getHTTPListener()); err != nil {
-			slog.Error(err.Error())
+		l := s.getHTTPListener()
+		slog.Info("starting HTTP server", "listener", l)
+		if err := s.listenHTTP(l); err != nil {
 			out = err
 		}
 		wg.Done()
 	}()
 
 	go func() {
-		if err := s.listenDNS(s.getDNSListener()); err != nil {
-			slog.Error(err.Error())
+		l := s.getDNSListener()
+		slog.Info("starting DNS server", "listener", l)
+		if err := s.listenDNS(l); err != nil {
 			out = err
 		}
 		wg.Done()
@@ -89,6 +92,7 @@ func (s *Server) handleGetIP() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ip, err := getCallerIP(r)
 		if err != nil {
+			slog.Error(err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -137,6 +141,7 @@ func (s *Server) handleUpdateIP() http.HandlerFunc {
 			return
 		}
 
+		slog.Info("updating IP for domain", "domain", domain, "ip", ip)
 		s.Set(domain, ip)
 		w.Write(nil)
 	}

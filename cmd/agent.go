@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"log"
+	"log/slog"
 	"net"
 	"os"
 
@@ -31,12 +31,14 @@ be sent in the request.`,
 		if len(args) == 2 {
 			ip = args[1]
 			if n := net.ParseIP(ip); n == nil {
-				log.Fatalf("not a valid ip: %s", ip)
+				slog.Error("ip is not valid", "ip", ip)
+				os.Exit(1)
 			}
 		}
 
 		if err := agent.UpdateIP(args[0], ip); err != nil {
-			log.Fatal(err)
+			slog.Error(err.Error())
+			os.Exit(1)
 		}
 	},
 }

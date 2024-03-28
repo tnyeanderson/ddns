@@ -1,13 +1,32 @@
-# DDNS
+# ddns
 
-Provides DDNS services for a single domain.
+Go package and CLI which provides server and agent components for a simple DDNS
+solution. A single executable with no dependencies. Can also be used with
+docker or kubernetes.
+
+## How it works
+
+The `ddns server` command starts an HTTP API server and a DNS server which will
+serve as authoritative for the domains that are [configured to use
+it](#prerequisites). Then another machine somewhere else (usually the backend
+server itself) can use the `ddns update` command to set the IP address for
+a given domain. Both commands are configured using environment variables.
+
+Authentication is done with simple API keys which can be configured to only
+allow updating for certain domains based on a regex matcher.
 
 ## Prerequisites
 
-Create NS records for the domain to be controlled by DDNS. For example, if the
-domain is `myddns.domain.com`, and the DDNS server component is running on
-`domain.com` (which resolves to `100.100.100.100`), then create the following
-DNS records for `domain.com`:
+Feel free to test the program all you want locally, but if you want other
+resolvers to start actually handing out your dynamic IP address, you need to
+tell them that this DDNS server you are running should be used to resolve your
+DDNS domain. This is done by creating NS records.
+
+For example, you own `domain.com` and have already set up A records for it
+which point to your public server at `100.100.100.100`, which is running the
+DDNS server component. You want to have a subdomain that resolves using DDNS to
+lead to your homelab, like `myddns.domain.com`. To handle this, create the
+following DNS records for `domain.com`.
 
 | Type | Host   | Value           |
 |------|--------|-----------------|
@@ -30,18 +49,24 @@ For `server.com`:
 | A    | ns1    | 100.100.100.100 |
 | A    | ns2    | 100.100.100.100 |
 
-For `myddns.com`
+For `myddns.com`:
 
 | Type | Host   | Value           |
 |------|--------|-----------------|
-| NS   | myddns | ns1.server.com  |
-| NS   | myddns | ns2.server.com  |
+| NS   | @      | ns1.server.com  |
+| NS   | @      | ns2.server.com  |
 
 ## Installation and setup
 
 ### Server setup
 
-To start quickly:
+Using the binary:
+
+```
+DDNS_SERVER_API_KEY=createatoken ddns server
+```
+
+Using docker:
 
 ```
 docker run -e DDNS_SERVER_API_KEY=createatoken ddns server
@@ -51,10 +76,16 @@ See `server.env.example` for more options.
 
 ### Agent setup
 
-To start quickly:
+Using the binary:
 
 ```
-docker run -e DDNS_API_SERVER=ddns.myserver.site -e DDNS_API_KEY=createatoken ddns agent yourdomain.site 1.2.3.4
+DDNS_API_SERVER=ddns.myserver.site DDNS_API_KEY=createatoken ddns update yourdomain.site 1.2.3.4
+```
+
+Using docker:
+
+```
+docker run -e DDNS_API_SERVER=ddns.myserver.site -e DDNS_API_KEY=createatoken ddns update yourdomain.site 1.2.3.4
 ```
 
 To update the IP address to the public IP of the box running the agent, simply

@@ -9,10 +9,16 @@ import (
 )
 
 type Agent struct {
+	// ServerAddress is the scheme/host/port of the DDNS API server, not
+	// including the /api base path.
 	ServerAddress string
-	APIKey        string
+
+	// APIKey will be used to authenticate to the DDNS API.
+	APIKey string
 }
 
+// DetermineIP returns the public IP of the caller as seen by the DDNS API
+// server. Uses the /api/v1/ip endpoint.
 func (a *Agent) DetermineIP() (string, error) {
 	server := strings.TrimSuffix(a.ServerAddress, "/")
 	url := fmt.Sprintf("%s/api/v1/ip", server)
@@ -31,6 +37,8 @@ func (a *Agent) DetermineIP() (string, error) {
 	return string(body), nil
 }
 
+// UpdateIP updates the IP for a given DDNS domain. Uses the /api/v1/update
+// endpoint.
 func (a *Agent) UpdateIP(domain, ip string) (bool, error) {
 	server := strings.TrimSuffix(a.ServerAddress, "/")
 	url := fmt.Sprintf("%s/api/v1/update?domain=%s&ip=%s", server, domain, ip)

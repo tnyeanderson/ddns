@@ -26,6 +26,9 @@ paths:
           schema:
             type: string
         - name: ip
+          description: >-
+            The new IP value. Use "auto" to let the server determine the value
+            based on the requestor.
           in: query
           required: false
           schema:

@@ -88,8 +88,19 @@ Using docker:
 docker run -e DDNS_API_SERVER=ddns.myserver.site -e DDNS_API_KEY=createatoken ddns update yourdomain.site 1.2.3.4
 ```
 
-To update the IP address to the public IP of the box running the agent, simply
-omit the IP and it will be calculated automatically.
+> NOTE: To update the IP address to the public IP of the box making the
+request, simply omit the IP argument and it will be calculated automatically by
+the API server.
+
+Updating an IP can also be done directly with `curl`:
+
+```
+curl -X POST -H "Authorization: Bearer $DDNS_API_KEY" 'yourserver.com/api/v1/update?domain=yourdomain.site&ip=1.2.3.4'
+```
+
+> NOTE: To update the IP address to the public IP of the box making the
+request, set the IP parameter to "auto" and it will be calculated automatically
+by the API server.
 
 See `agent.env.example` for more options.
 

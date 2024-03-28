@@ -12,8 +12,8 @@ it](#prerequisites). Then another machine somewhere else (usually the backend
 server itself) can use the `ddns update` command to set the IP address for
 a given domain. Both commands are configured using environment variables.
 
-Authentication is done with simple API keys which can be configured to only
-allow updating for certain domains based on a regex matcher.
+API keys are used for authentication, and API keys can be restricted to only
+update certain domains based on a regex matcher.
 
 ## Prerequisites
 

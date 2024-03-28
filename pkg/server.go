@@ -1,15 +1,19 @@
 package ddns
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
+	"path"
 	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/miekg/dns"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -25,6 +29,9 @@ const (
 // record for any domain (no restrictions).
 type APIKeyMatcher map[string]*regexp.Regexp
 
+// Domains maps a domain to an IP that will be returned by the DNS server.
+type Domains map[string]net.IP
+
 type Server struct {
 	// AllowedAPIKeys contains the API keys allowed by the server and their
 	// permissions.
@@ -38,9 +45,15 @@ type Server struct {
 	// [dns.Server].
 	DNSListener string
 
-	// Domains is the map of a domain to an IP that will be returned by the DNS
-	// server.
-	Domains map[string]net.IP
+	// Domains stores the domain/IP associations for the server.
+	Domains Domains
+
+	// CacheFile is the path to the cache file. If set, [Server.Domains] will be
+	// prepopulated with the values from the cache file when [Server.Listen()] is
+	// called. In addition, any time [Server.Domains] is updated, its value will
+	// be marshaled to YAML and saved to the cache file.  An empty value disables
+	// the cache completely.
+	CacheFile string
 }
 
 // Allow is a convenience function for adding API keys which are allowed to
@@ -61,14 +74,25 @@ func (s *Server) Set(domain string, ip net.IP) {
 		s.Domains = map[string]net.IP{}
 	}
 	s.Domains[domain] = ip
+	if s.CacheFile != "" {
+		if err := s.writeToCache(); err != nil {
+			slog.Error("failed to write to cache", "path", s.CacheFile, "error", err.Error())
+		}
+	}
 }
 
 // Listen starts a DNS server and an HTTP server for the API, and blocks until
 // either of them exits.
 func (s *Server) Listen() error {
-	wg := sync.WaitGroup{}
+	if s.CacheFile != "" {
+		err := s.loadFromCacheIfExists()
+		if err != nil {
+			return err
+		}
+	}
 
 	// If any exits, end the program
+	wg := sync.WaitGroup{}
 	wg.Add(1)
 
 	var out error
@@ -93,6 +117,54 @@ func (s *Server) Listen() error {
 
 	wg.Wait()
 	return out
+}
+
+func (s *Server) loadFromCacheIfExists() error {
+	if _, err := os.Stat(s.CacheFile); errors.Is(err, os.ErrNotExist) {
+		slog.Info("domain cache file does not exist", "path", s.CacheFile)
+		return nil
+	}
+
+	return s.loadFromCache()
+}
+
+func (s *Server) loadFromCache() error {
+	domains := Domains{}
+
+	b, err := os.ReadFile(s.CacheFile)
+	if err != nil {
+		return err
+	}
+
+	if err := yaml.Unmarshal(b, &domains); err != nil {
+		return err
+	}
+
+	s.Domains = domains
+	slog.Info("loaded domains from cache", "path", s.CacheFile)
+	return nil
+}
+
+func (s *Server) writeToCache() error {
+	b, err := yaml.Marshal(s.Domains)
+	if err != nil {
+		return err
+	}
+
+	// Try to create parent directories if needed
+	cacheDir := path.Dir(s.CacheFile)
+	if _, err := os.Stat(cacheDir); errors.Is(err, os.ErrNotExist) {
+		slog.Info("creating directory for cache file", "path", cacheDir)
+		if err := os.MkdirAll(cacheDir, 0755); err != nil {
+			return err
+		}
+	}
+
+	if err := os.WriteFile(s.CacheFile, b, 0644); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Server) listenHTTP(listener string) error {

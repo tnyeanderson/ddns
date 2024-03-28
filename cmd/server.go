@@ -32,6 +32,10 @@ var serverCmd = &cobra.Command{
 			s.Allow(key, r)
 		}
 
+		if v := os.Getenv("DDNS_SERVER_CACHE_FILE"); v != "" {
+			s.CacheFile = v
+		}
+
 		if err := s.Listen(); err != nil {
 			slog.Error(err.Error())
 			os.Exit(1)

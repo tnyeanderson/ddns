@@ -49,10 +49,10 @@ type Server struct {
 	Domains Domains
 
 	// CacheFile is the path to the cache file. If set, [Server.Domains] will be
-	// prepopulated with the values from the cache file when [Server.Listen()] is
-	// called. In addition, any time [Server.Domains] is updated, its value will
-	// be marshaled to YAML and saved to the cache file.  An empty value disables
-	// the cache completely.
+	// prepopulated with the values from the cache file when [Server.Load()] is
+	// called. In addition, any time [Server.Set()] is called, the value of
+	// [Server.Domains] will be marshaled to YAML and saved to the cache file.
+	// An empty value disables the cache completely.
 	CacheFile string
 }
 
@@ -81,16 +81,23 @@ func (s *Server) Set(domain string, ip net.IP) {
 	}
 }
 
+// Load populates [s.Domains] using the cache file if it exists.
+func (s *Server) Load() error {
+	if s.CacheFile == "" {
+		return nil
+	}
+
+	if _, err := os.Stat(s.CacheFile); errors.Is(err, os.ErrNotExist) {
+		slog.Info("domain cache file does not exist", "path", s.CacheFile)
+		return nil
+	}
+
+	return s.loadFromCache()
+}
+
 // Listen starts a DNS server and an HTTP server for the API, and blocks until
 // either of them exits.
 func (s *Server) Listen() error {
-	if s.CacheFile != "" {
-		err := s.loadFromCacheIfExists()
-		if err != nil {
-			return err
-		}
-	}
-
 	// If any exits, end the program
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -117,15 +124,6 @@ func (s *Server) Listen() error {
 
 	wg.Wait()
 	return out
-}
-
-func (s *Server) loadFromCacheIfExists() error {
-	if _, err := os.Stat(s.CacheFile); errors.Is(err, os.ErrNotExist) {
-		slog.Info("domain cache file does not exist", "path", s.CacheFile)
-		return nil
-	}
-
-	return s.loadFromCache()
 }
 
 func (s *Server) loadFromCache() error {

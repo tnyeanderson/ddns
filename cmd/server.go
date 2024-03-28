@@ -36,6 +36,12 @@ var serverCmd = &cobra.Command{
 			s.CacheFile = v
 		}
 
+		if err := s.Load(); err != nil {
+			// Log, but don't exit here. Failing to load from the cache is not fatal
+			// and should not stop the DNS server from starting.
+			slog.Error(err.Error())
+		}
+
 		if err := s.Listen(); err != nil {
 			slog.Error(err.Error())
 			os.Exit(1)

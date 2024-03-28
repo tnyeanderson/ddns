@@ -1,1 +1,0 @@
-ddns ALL=NOPASSWD: /usr/bin/killall -s SIGHUP dnsmasq

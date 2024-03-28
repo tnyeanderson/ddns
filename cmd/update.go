@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"net"
 	"os"
@@ -9,12 +10,11 @@ import (
 	ddns "github.com/tnyeanderson/ddns/pkg"
 )
 
-// agentCmd represents the agent command
-var agentCmd = &cobra.Command{
-	Use:   "agent domain [ip]",
+var updateCmd = &cobra.Command{
+	Use:   "update domain [ip]",
 	Args:  cobra.MinimumNArgs(1),
-	Short: "Run the DDNS update agent",
-	Long: `Update the A record for a given domain. If an IP is not provided, "auto" will
+	Short: "Update the A record for a domain",
+	Long: `Update the A record for a domain. If an IP is not provided, "auto" will
 be sent in the request.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		server := "http://localhost:3345"
@@ -27,6 +27,8 @@ be sent in the request.`,
 			APIKey:        os.Getenv("DDNS_API_KEY"),
 		}
 
+		domain := args[0]
+
 		ip := "auto"
 		if len(args) == 2 {
 			ip = args[1]
@@ -36,13 +38,20 @@ be sent in the request.`,
 			}
 		}
 
-		if err := agent.UpdateIP(args[0], ip); err != nil {
+		updated, err := agent.UpdateIP(domain, ip)
+		if err != nil {
 			slog.Error(err.Error())
 			os.Exit(1)
+		}
+
+		if updated {
+			slog.Info(fmt.Sprintf("updated dns entry for %s to %s", domain, ip))
+		} else {
+			slog.Info(fmt.Sprintf("dns entry already correct for %s: %s", domain, ip))
 		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(agentCmd)
+	rootCmd.AddCommand(updateCmd)
 }

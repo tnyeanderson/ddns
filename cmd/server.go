@@ -9,7 +9,6 @@ import (
 	ddns "github.com/tnyeanderson/ddns/pkg"
 )
 
-// serverCmd represents the server command
 var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start a DDNS server",

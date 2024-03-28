@@ -17,11 +17,18 @@ const (
 	DefaultHTTPListener = ":3345"
 )
 
+// APIKeyMatcher is a map of API keys that will be allowed by the server
+// when provided as a bearer token in the authorization header. The value
+// associated with each API key is a [*regexp.Regexp] matcher that must match
+// the incoming domain in order for the API key to be authorized to change
+// the DNS record for that domain. A nil matcher allows changing the DNS
+// record for any domain (no restrictions).
+type APIKeyMatcher map[string]*regexp.Regexp
+
 type Server struct {
-	// AllowedAPIKeys is a list of strings that will be allowed by the server
-	// when provided as a bearer token in the authorization header. A nil matcher
-	// allows changing the DNS record for any domain (no restrictions).
-	AllowedAPIKeys map[string]*regexp.Regexp
+	// AllowedAPIKeys contains the API keys allowed by the server and their
+	// permissions.
+	AllowedAPIKeys APIKeyMatcher
 
 	// HTTPListener is the TCP address that will be passed to
 	// [http.ListenAndServe()].
@@ -43,7 +50,7 @@ type Server struct {
 // restrictions).
 func (s *Server) Allow(apiKey string, domainMatcher *regexp.Regexp) {
 	if s.AllowedAPIKeys == nil {
-		s.AllowedAPIKeys = map[string]*regexp.Regexp{}
+		s.AllowedAPIKeys = APIKeyMatcher{}
 	}
 	s.AllowedAPIKeys[apiKey] = domainMatcher
 }
@@ -61,7 +68,7 @@ func (s *Server) Set(domain string, ip net.IP) {
 func (s *Server) Listen() error {
 	wg := sync.WaitGroup{}
 
-	// If one exits, end the program
+	// If any exits, end the program
 	wg.Add(1)
 
 	var out error
@@ -86,6 +93,12 @@ func (s *Server) Listen() error {
 
 	wg.Wait()
 	return out
+}
+
+func (s *Server) listenHTTP(listener string) error {
+	http.HandleFunc("GET /api/v1/ip", s.handleGetIP())
+	http.HandleFunc("POST /api/v1/update", s.handleUpdateIP())
+	return http.ListenAndServe(listener, nil)
 }
 
 func (s *Server) handleGetIP() http.HandlerFunc {
@@ -141,21 +154,29 @@ func (s *Server) handleUpdateIP() http.HandlerFunc {
 			return
 		}
 
+		// Skip if already correct
+		if existingIP, ok := s.Domains[domain]; ok {
+			if ip.Equal(existingIP) {
+				slog.Debug("skipping update for domain already set to same IP", "domain", domain, "ip", ip)
+				return
+			}
+		}
+
+		// Update
 		slog.Info("updating IP for domain", "domain", domain, "ip", ip)
 		s.Set(domain, ip)
-		w.Write(nil)
+		w.WriteHeader(http.StatusCreated)
 	}
-}
-
-func (s *Server) listenHTTP(listener string) error {
-	http.HandleFunc("GET /api/v1/ip", s.handleGetIP())
-	http.HandleFunc("POST /api/v1/update", s.handleUpdateIP())
-	return http.ListenAndServe(listener, nil)
 }
 
 func (s *Server) listenDNS(listener string) error {
 	dnsServer := &dns.Server{Addr: listener, Net: "udp"}
-	dns.HandleFunc(".", func(w dns.ResponseWriter, m *dns.Msg) {
+	dns.HandleFunc(".", s.handleDNS())
+	return dnsServer.ListenAndServe()
+}
+
+func (s *Server) handleDNS() dns.HandlerFunc {
+	return func(w dns.ResponseWriter, m *dns.Msg) {
 		r := new(dns.Msg)
 		r.SetReply(m)
 		defer w.WriteMsg(r)
@@ -163,6 +184,7 @@ func (s *Server) listenDNS(listener string) error {
 			domain := strings.TrimSuffix(q.Name, ".")
 			ip := s.Domains[domain]
 			if q.Qtype == dns.TypeA && ip != nil {
+				r.MsgHdr.Authoritative = true
 				answer := &dns.A{
 					A: ip,
 					Hdr: dns.RR_Header{
@@ -171,11 +193,10 @@ func (s *Server) listenDNS(listener string) error {
 						Class:  q.Qclass,
 					},
 				}
-				r.Answer = append(r.Answer, answer)
+				r.Ns = append(r.Answer, answer)
 			}
 		}
-	})
-	return dnsServer.ListenAndServe()
+	}
 }
 
 func (s *Server) validateToken(key string) bool {
@@ -198,6 +219,7 @@ func (s *Server) getDNSListener() string {
 	}
 	return s.DNSListener
 }
+
 func (s *Server) getHTTPListener() string {
 	if s.HTTPListener == "" {
 		return DefaultHTTPListener

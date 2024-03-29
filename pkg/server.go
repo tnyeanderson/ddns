@@ -48,12 +48,12 @@ type Server struct {
 	// Domains stores the domain/IP associations for the server.
 	Domains Domains
 
-	// CacheFile is the path to the cache file. If set, [Server.Domains] will be
-	// prepopulated with the values from the cache file when [Server.Load()] is
+	// HostsFile is the path to the hosts file. If set, [Server.Domains] will be
+	// prepopulated with the values from the hosts file when [Server.Load()] is
 	// called. In addition, any time [Server.Set()] is called, the value of
-	// [Server.Domains] will be marshaled to YAML and saved to the cache file.
-	// An empty value disables the cache completely.
-	CacheFile string
+	// [Server.Domains] will be marshaled to YAML and saved to the hosts file.
+	// An empty value disables the hosts file completely.
+	HostsFile string
 }
 
 // Allow is a convenience function for adding API keys which are allowed to
@@ -74,25 +74,25 @@ func (s *Server) Set(domain string, ip net.IP) {
 		s.Domains = map[string]net.IP{}
 	}
 	s.Domains[domain] = ip
-	if s.CacheFile != "" {
-		if err := s.writeToCache(); err != nil {
-			slog.Error("failed to write to cache", "path", s.CacheFile, "error", err.Error())
+	if s.HostsFile != "" {
+		if err := s.writeToHostsFile(); err != nil {
+			slog.Error("failed to write to hosts file", "path", s.HostsFile, "error", err.Error())
 		}
 	}
 }
 
-// Load populates [s.Domains] using the cache file if it exists.
+// Load populates [s.Domains] using the hosts file file if it exists.
 func (s *Server) Load() error {
-	if s.CacheFile == "" {
+	if s.HostsFile == "" {
 		return nil
 	}
 
-	if _, err := os.Stat(s.CacheFile); errors.Is(err, os.ErrNotExist) {
-		slog.Info("domain cache file does not exist", "path", s.CacheFile)
+	if _, err := os.Stat(s.HostsFile); errors.Is(err, os.ErrNotExist) {
+		slog.Info("hosts file does not exist", "path", s.HostsFile)
 		return nil
 	}
 
-	return s.loadFromCache()
+	return s.loadFromHostsFile()
 }
 
 // Listen starts a DNS server and an HTTP server for the API, and blocks until
@@ -126,10 +126,10 @@ func (s *Server) Listen() error {
 	return out
 }
 
-func (s *Server) loadFromCache() error {
+func (s *Server) loadFromHostsFile() error {
 	domains := Domains{}
 
-	b, err := os.ReadFile(s.CacheFile)
+	b, err := os.ReadFile(s.HostsFile)
 	if err != nil {
 		return err
 	}
@@ -139,26 +139,26 @@ func (s *Server) loadFromCache() error {
 	}
 
 	s.Domains = domains
-	slog.Info("loaded domains from cache", "path", s.CacheFile)
+	slog.Info("loaded domains from hosts file", "path", s.HostsFile)
 	return nil
 }
 
-func (s *Server) writeToCache() error {
+func (s *Server) writeToHostsFile() error {
 	b, err := yaml.Marshal(s.Domains)
 	if err != nil {
 		return err
 	}
 
 	// Try to create parent directories if needed
-	cacheDir := path.Dir(s.CacheFile)
-	if _, err := os.Stat(cacheDir); errors.Is(err, os.ErrNotExist) {
-		slog.Info("creating directory for cache file", "path", cacheDir)
-		if err := os.MkdirAll(cacheDir, 0755); err != nil {
+	hostsDir := path.Dir(s.HostsFile)
+	if _, err := os.Stat(hostsDir); errors.Is(err, os.ErrNotExist) {
+		slog.Info("creating directory for hosts file", "path", hostsDir)
+		if err := os.MkdirAll(hostsDir, 0755); err != nil {
 			return err
 		}
 	}
 
-	if err := os.WriteFile(s.CacheFile, b, 0644); err != nil {
+	if err := os.WriteFile(s.HostsFile, b, 0644); err != nil {
 		return err
 	}
 

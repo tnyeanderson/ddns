@@ -16,29 +16,31 @@ var serverCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		s := &ddns.Server{}
 
-		if v := os.Getenv("DDNS_SERVER_HTTP_LISTENER"); v != "" {
+		if v := os.Getenv(EnvServerHTTPListener); v != "" {
 			s.HTTPListener = v
 		}
 
-		if v := os.Getenv("DDNS_SERVER_DNS_LISTENER"); v != "" {
+		if v := os.Getenv(EnvServerDNSListener); v != "" {
 			s.DNSListener = v
 		}
 
-		if key := os.Getenv("DDNS_SERVER_API_KEY"); key != "" {
+		if key := os.Getenv(EnvServerAPIKey); key != "" {
 			var r *regexp.Regexp
-			if pattern := os.Getenv("DDNS_SERVER_API_KEY_REGEX"); pattern != "" {
+			if pattern := os.Getenv(EnvServerAPIKeyRegex); pattern != "" {
 				r = regexp.MustCompile(pattern)
 			}
 			s.Allow(key, r)
 		}
 
-		if v := os.Getenv("DDNS_SERVER_CACHE_FILE"); v != "" {
-			s.CacheFile = v
+		if v := os.Getenv(EnvServerHostsFile); v != "" {
+			s.HostsFile = v
 		}
 
 		if err := s.Load(); err != nil {
-			// Log, but don't exit here. Failing to load from the cache is not fatal
-			// and should not stop the DNS server from starting.
+			// Log, but don't exit here. Failing to load from the hosts file is not
+			// fatal, and should not stop the DNS server from starting. It's better
+			// to start up and wait for the next update than to crash and have no
+			// chance of fulfilling requests at all.
 			slog.Error(err.Error())
 		}
 

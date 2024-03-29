@@ -18,13 +18,13 @@ var updateCmd = &cobra.Command{
 be sent in the request.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		server := "http://localhost:3345"
-		if v := os.Getenv("DDNS_API_SERVER"); v != "" {
+		if v := os.Getenv(EnvAPIServer); v != "" {
 			server = v
 		}
 
 		agent := &ddns.Agent{
 			ServerAddress: server,
-			APIKey:        os.Getenv("DDNS_API_KEY"),
+			APIKey:        os.Getenv(EnvAPIKey),
 		}
 
 		domain := args[0]

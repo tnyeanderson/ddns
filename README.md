@@ -58,6 +58,14 @@ For `myddns.com`:
 
 ## Installation and setup
 
+View environment variables and their descriptions with:
+
+```
+go doc -all cmd
+```
+
+> NOTE: Alternatively, check the contents of `cmd/const.go`.
+
 ### Server setup
 
 Using the binary:
@@ -71,8 +79,6 @@ Using docker:
 ```
 docker run -e DDNS_SERVER_API_KEY=createatoken ddns server
 ```
-
-See `server.env.example` for more options.
 
 ### Agent setup
 
@@ -101,6 +107,4 @@ curl -X POST -H "Authorization: Bearer $DDNS_API_KEY" 'yourserver.com/api/v1/upd
 > NOTE: To update the IP address to the public IP of the box making the
 request, set the IP parameter to "auto" and it will be calculated automatically
 by the API server.
-
-See `agent.env.example` for more options.
 

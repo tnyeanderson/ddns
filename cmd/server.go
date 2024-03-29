@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	ddns "github.com/tnyeanderson/ddns/pkg"
+	"gopkg.in/yaml.v3"
 )
 
 var serverCmd = &cobra.Command{
@@ -16,6 +17,20 @@ var serverCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		s := &ddns.Server{}
 
+		// Read config if it exists
+		if v := os.Getenv(EnvServerConfigFile); v != "" {
+			b, err := os.ReadFile(v)
+			if err != nil {
+				slog.Error(err.Error())
+				os.Exit(1)
+			}
+			if err := yaml.Unmarshal(b, s); err != nil {
+				slog.Error(err.Error())
+				os.Exit(1)
+			}
+		}
+
+		// Overwrite config values with env vars, if set
 		if v := os.Getenv(EnvServerHTTPListener); v != "" {
 			s.HTTPListener = v
 		}
@@ -36,6 +51,7 @@ var serverCmd = &cobra.Command{
 			s.HostsFile = v
 		}
 
+		// Load domains from hosts file
 		if err := s.Load(); err != nil {
 			// Log, but don't exit here. Failing to load from the hosts file is not
 			// fatal, and should not stop the DNS server from starting. It's better
@@ -44,6 +60,7 @@ var serverCmd = &cobra.Command{
 			slog.Error(err.Error())
 		}
 
+		// Start the server
 		if err := s.Listen(); err != nil {
 			slog.Error(err.Error())
 			os.Exit(1)

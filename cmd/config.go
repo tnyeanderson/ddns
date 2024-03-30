@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"regexp"
+	"strings"
 
 	ddns "github.com/tnyeanderson/ddns/pkg"
 	"gopkg.in/yaml.v3"
@@ -83,4 +85,24 @@ func (c *Config) fromEnv() {
 	if v := os.Getenv(EnvAPIKey); v != "" {
 		c.Agent.APIKey = v
 	}
+}
+
+func getEnvDocs(prefix string) string {
+	// Not a map to preserve deterministic order
+	docs := [][]string{
+		[]string{EnvConfigFile, "Path to a YAML configuration file for DDNS. See the cmd.Config struct for more info."},
+		[]string{EnvAPIServer, "(Agent) The scheme/host/port of the DDNS API server, not including the /api base path."},
+		[]string{EnvAPIKey, "(Agent) The API key used to authenticate to the DDNS API."},
+		[]string{EnvServerAPIKey, "Adds this API key to the AllowedAPIKeys map for the server."},
+		[]string{EnvServerAPIKeyRegex, fmt.Sprintf("Used as the value for the %s key in the Server.AllowedAPIKeys map.", EnvServerAPIKey)},
+		[]string{EnvServerHostsFile, "Path to the hosts file used by the server. See Server.HostsFile for more info."},
+		[]string{EnvServerHTTPListener, "The TCP listener address for the HTTP server."},
+		[]string{EnvServerDNSListener, "The TCP listener address for the DNS server."},
+	}
+	s := &strings.Builder{}
+	for _, v := range docs {
+		fmt.Fprintf(s, "%s%s\n", prefix, v[0])
+		fmt.Fprintf(s, "%s  %s\n\n", prefix, v[1])
+	}
+	return s.String()
 }

@@ -14,7 +14,9 @@ var updateCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 	Short: "Update the A record for a domain",
 	Long: `Update the A record for a domain. If an IP is not provided, "auto" will
-be sent in the request.`,
+be sent in the request.
+
+See "ddns help" for a list of supported environment variables.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		c := &Config{}
 		if err := c.Init(); err != nil {

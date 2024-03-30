@@ -10,7 +10,9 @@ import (
 var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start a DDNS server",
-	Long:  "Start an HTTP server and a DNS server.",
+	Long: `Start an HTTP server and a DNS server.
+
+See "ddns help" for a list of supported environment variables.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		c := &Config{}
 		if err := c.Init(); err != nil {

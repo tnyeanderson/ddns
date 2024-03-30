@@ -56,15 +56,19 @@ For `myddns.com`:
 | NS   | @      | ns1.server.com  |
 | NS   | @      | ns2.server.com  |
 
-## Installation and setup
+## Installation and configuration
 
-View environment variables and their descriptions with:
+Install the program by downloading the release binary directly, or by running:
 
 ```
-go doc -all cmd
+go install github.com/tnyeanderson/ddns@latest
 ```
 
-> NOTE: Alternatively, check the contents of `cmd/const.go`.
+View supported environment variables and their descriptions with:
+
+```
+ddns help
+```
 
 ### Server setup
 

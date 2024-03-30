@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -10,6 +11,13 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "ddns",
 	Short: "A simple DDNS server and client",
+	Long: fmt.Sprintf(`A simple DDNS server and client.
+
+ENVIRONMENT VARIABLES
+
+%s
+
+`, getEnvDocs("  ")),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

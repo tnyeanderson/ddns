@@ -81,7 +81,7 @@ DDNS_SERVER_API_KEY=createatoken ddns server
 Using docker:
 
 ```
-docker run -e DDNS_SERVER_API_KEY=createatoken ddns server
+docker run -e DDNS_SERVER_API_KEY=createatoken ghcr.io/tnyeanderson/ddns server
 ```
 
 ### Agent setup
@@ -95,7 +95,7 @@ DDNS_API_SERVER=ddns.myserver.site DDNS_API_KEY=createatoken ddns update yourdom
 Using docker:
 
 ```
-docker run -e DDNS_API_SERVER=ddns.myserver.site -e DDNS_API_KEY=createatoken ddns update yourdomain.site 1.2.3.4
+docker run -e DDNS_API_SERVER=ddns.myserver.site -e DDNS_API_KEY=createatoken ghcr.io/tnyeanderson/ddns update yourdomain.site 1.2.3.4
 ```
 
 > NOTE: To update the IP address to the public IP of the box making the

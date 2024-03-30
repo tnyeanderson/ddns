@@ -9,7 +9,7 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Version: "v0.0.2",
+	Version: "v0.0.3",
 	Use:     "ddns",
 	Short:   "A simple DDNS server and client",
 	Long: fmt.Sprintf(`A simple DDNS server and client.

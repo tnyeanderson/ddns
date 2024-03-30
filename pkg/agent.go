@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+const DefaultServerAddress = "http://localhost:3345"
+
 type Agent struct {
 	// ServerAddress is the scheme/host/port of the DDNS API server, not
 	// including the /api base path.
@@ -20,8 +22,7 @@ type Agent struct {
 // DetermineIP returns the public IP of the caller as seen by the DDNS API
 // server. Uses the /api/v1/ip endpoint.
 func (a *Agent) DetermineIP() (string, error) {
-	server := strings.TrimSuffix(a.ServerAddress, "/")
-	url := fmt.Sprintf("%s/api/v1/ip", server)
+	url := fmt.Sprintf("%s/api/v1/ip", a.getServerAddress())
 	res, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -40,8 +41,7 @@ func (a *Agent) DetermineIP() (string, error) {
 // UpdateIP updates the IP for a given DDNS domain. Uses the /api/v1/update
 // endpoint.
 func (a *Agent) UpdateIP(domain, ip string) (bool, error) {
-	server := strings.TrimSuffix(a.ServerAddress, "/")
-	url := fmt.Sprintf("%s/api/v1/update?domain=%s&ip=%s", server, domain, ip)
+	url := fmt.Sprintf("%s/api/v1/update?domain=%s&ip=%s", a.getServerAddress(), domain, ip)
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(nil))
 	if err != nil {
 		return false, err
@@ -63,4 +63,12 @@ func (a *Agent) UpdateIP(domain, ip string) (bool, error) {
 	}
 
 	return updated, nil
+}
+
+func (a *Agent) getServerAddress() string {
+	server := DefaultServerAddress
+	if a.ServerAddress != "" {
+		server = a.ServerAddress
+	}
+	return strings.TrimSuffix(server, "/")
 }

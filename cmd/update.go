@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	ddns "github.com/tnyeanderson/ddns/pkg"
 )
 
 var updateCmd = &cobra.Command{
@@ -17,14 +16,10 @@ var updateCmd = &cobra.Command{
 	Long: `Update the A record for a domain. If an IP is not provided, "auto" will
 be sent in the request.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		server := "http://localhost:3345"
-		if v := os.Getenv(EnvAPIServer); v != "" {
-			server = v
-		}
-
-		agent := &ddns.Agent{
-			ServerAddress: server,
-			APIKey:        os.Getenv(EnvAPIKey),
+		c := &Config{}
+		if err := c.Init(); err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
 		}
 
 		domain := args[0]
@@ -38,7 +33,7 @@ be sent in the request.`,
 			}
 		}
 
-		updated, err := agent.UpdateIP(domain, ip)
+		updated, err := c.Agent.UpdateIP(domain, ip)
 		if err != nil {
 			slog.Error(err.Error())
 			os.Exit(1)

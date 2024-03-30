@@ -3,11 +3,8 @@ package cmd
 import (
 	"log/slog"
 	"os"
-	"regexp"
 
 	"github.com/spf13/cobra"
-	ddns "github.com/tnyeanderson/ddns/pkg"
-	"gopkg.in/yaml.v3"
 )
 
 var serverCmd = &cobra.Command{
@@ -15,41 +12,34 @@ var serverCmd = &cobra.Command{
 	Short: "Start a DDNS server",
 	Long:  "Start an HTTP server and a DNS server.",
 	Run: func(cmd *cobra.Command, args []string) {
-		s := &ddns.Server{}
-
-		// Read config if it exists
-		if v := os.Getenv(EnvServerConfigFile); v != "" {
-			b, err := os.ReadFile(v)
-			if err != nil {
-				slog.Error(err.Error())
-				os.Exit(1)
-			}
-			if err := yaml.Unmarshal(b, s); err != nil {
-				slog.Error(err.Error())
-				os.Exit(1)
-			}
+		c := Config{}
+		if err := c.Init(); err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
 		}
 
-		// Overwrite config values with env vars, if set
-		if v := os.Getenv(EnvServerHTTPListener); v != "" {
-			s.HTTPListener = v
-		}
+		s := c.Server
 
-		if v := os.Getenv(EnvServerDNSListener); v != "" {
-			s.DNSListener = v
-		}
+		//// Overwrite config values with env vars, if set
+		//if v := os.Getenv(EnvServerHTTPListener); v != "" {
+		//	s.HTTPListener = v
+		//}
 
-		if key := os.Getenv(EnvServerAPIKey); key != "" {
-			var r *regexp.Regexp
-			if pattern := os.Getenv(EnvServerAPIKeyRegex); pattern != "" {
-				r = regexp.MustCompile(pattern)
-			}
-			s.Allow(key, r)
-		}
+		//if v := os.Getenv(EnvServerDNSListener); v != "" {
+		//	s.DNSListener = v
+		//}
 
-		if v := os.Getenv(EnvServerHostsFile); v != "" {
-			s.HostsFile = v
-		}
+		//if key := os.Getenv(EnvServerAPIKey); key != "" {
+		//	var r *regexp.Regexp
+		//	if pattern := os.Getenv(EnvServerAPIKeyRegex); pattern != "" {
+		//		r = regexp.MustCompile(pattern)
+		//	}
+		//	s.Allow(key, r)
+		//}
+
+		//if v := os.Getenv(EnvServerHostsFile); v != "" {
+		//	s.HostsFile = v
+		//}
 
 		// Load domains from hosts file
 		if err := s.Load(); err != nil {

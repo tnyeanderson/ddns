@@ -1,13 +1,32 @@
-# DDNS
+# ddns
 
-Provides DDNS services for a single domain.
+Go package and CLI which provides server and agent components for a simple DDNS
+solution. A single executable with no dependencies. Can also be used with
+docker or kubernetes.
+
+## How it works
+
+The `ddns server` command starts an HTTP API server and a DNS server which will
+serve as authoritative for the domains that are [configured to use
+it](#prerequisites). Then another machine somewhere else (usually the backend
+server itself) can use the `ddns update` command to set the IP address for
+a given domain. Both commands are configured using environment variables.
+
+API keys are used for authentication, and API keys can be restricted to only
+update certain domains based on a regex matcher.
 
 ## Prerequisites
 
-Create NS records for the domain to be controlled by DDNS. For example, if the
-domain is `myddns.domain.com`, and the DDNS server component is running on
-`domain.com` (which resolves to `100.100.100.100`), then create the following
-DNS records for `domain.com`:
+Feel free to test the program all you want locally, but if you want other
+resolvers to start actually handing out your dynamic IP address, you need to
+tell them that this DDNS server you are running should be used to resolve your
+DDNS domain. This is done by creating NS records.
+
+For example, you own `domain.com` and have already set up A records for it
+which point to your public server at `100.100.100.100`, which is running the
+DDNS server component. You want to have a subdomain that resolves using DDNS to
+lead to your homelab, like `myddns.domain.com`. To handle this, create the
+following DNS records for `domain.com`.
 
 | Type | Host   | Value           |
 |------|--------|-----------------|
@@ -30,80 +49,66 @@ For `server.com`:
 | A    | ns1    | 100.100.100.100 |
 | A    | ns2    | 100.100.100.100 |
 
-For `myddns.com`
+For `myddns.com`:
 
 | Type | Host   | Value           |
 |------|--------|-----------------|
-| NS   | myddns | ns1.server.com  |
-| NS   | myddns | ns2.server.com  |
+| NS   | @      | ns1.server.com  |
+| NS   | @      | ns2.server.com  |
 
-## Installation and setup
+## Installation and configuration
 
-### Agent setup
+Install the program by downloading the release binary directly, or by running:
 
-Generate an SSH keypair for communication between the agent and server:
-```bash
-mkdir agent/conf
-ssh-keygen -t ed25519 -C ddns -f agent/conf/ssh.key -N ''
+```
+go install github.com/tnyeanderson/ddns@latest
 ```
 
-> NOTE: Stop here and make sure the server component is running before
-continuing!
+View supported environment variables and their descriptions with:
 
-Set the `SSH_HOST` and `SSH_PORT` environment variables in `agent/ddns.env`.
-Use `agent/ddns.env.example` as a template/guide.
-
-Build and run the agent to make sure it is working:
-```bash
-cd agent
-docker-compose build && docker-compose up
 ```
-
-Create a cron entry to run the agent regularly with `/etc/cron.d/ddns`:
-```cron
-# Run the DDNS agent container every 4 minutes
-*/4 * * * * root cd /app/ddns/agent && /usr/bin/docker-compose up
+ddns help
 ```
 
 ### Server setup
 
-Create `server/conf` and copy `agent/conf/ssh.key.pub` from the previous step
-into it.
+Using the binary:
 
-Set the `DDNS_DOMAIN` environment variable in `server/ddns.env`. Use
-`server/ddns.env.example` as a template/guide.
-
-Build and start the container:
-```bash
-cd server
-docker-compose build && docker-compose up -d
+```
+DDNS_SERVER_API_KEY=createatoken ddns server
 ```
 
-## How it works
+Using docker:
 
-For this example, **lanhost** is a server or computer running on someone's home
-network (or another environment that requires DDNS services) and **dnshost** is
-the DDNS server which faces the internet.
+```
+docker run -e DDNS_SERVER_API_KEY=createatoken ddns server
+```
 
-The **dnshost** runs the **server** component, which consists of an SSH server
-(sshd) and a DNS server (dnsmasq). The **lanhost** runs the **agent** component
-with a cronjob. Each time the agent is run, it makes a request to icanhazip.com
-to obtain the public IP for **lanhost**. For a home server, this would be the
-WAN address, usually assigned by the ISP's DHCP service. It checks the newly
-received address against the last one it received, and if it has changed (or
-`$FORCE` is set), the agent makes an SSH request to the server component which
-updates the DNS entry.
+### Agent setup
 
-The SSH server is locked down to ignore/overwrite the command provided by the
-agent (`$0`) other than its first parameter (the new IP).
+Using the binary:
 
-The DNS server is locked down to *only* respond to the DDNS domain. It does not
-recurse or refer to any upstream nameserver for a result. This prevents it from
-being used as a "normal" DNS server (as it is only useful if trying to resolve
-the DDNS domain).
+```
+DDNS_API_SERVER=ddns.myserver.site DDNS_API_KEY=createatoken ddns update yourdomain.site 1.2.3.4
+```
 
-## Future features
+Using docker:
 
-- [ ] Multiple DDNS domains
-- [ ] Different services to get public IP
+```
+docker run -e DDNS_API_SERVER=ddns.myserver.site -e DDNS_API_KEY=createatoken ddns update yourdomain.site 1.2.3.4
+```
+
+> NOTE: To update the IP address to the public IP of the box making the
+request, simply omit the IP argument and it will be calculated automatically by
+the API server.
+
+Updating an IP can also be done directly with `curl`:
+
+```
+curl -X POST -H "Authorization: Bearer $DDNS_API_KEY" 'yourserver.com/api/v1/update?domain=yourdomain.site&ip=1.2.3.4'
+```
+
+> NOTE: To update the IP address to the public IP of the box making the
+request, set the IP parameter to "auto" and it will be calculated automatically
+by the API server.
 

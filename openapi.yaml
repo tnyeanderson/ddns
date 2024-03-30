@@ -1,0 +1,56 @@
+openapi: 3.1.0
+info:
+  version: 0.0.1
+  title: DDNS API
+paths:
+  /api/v1/ip:
+    get:
+      description: Get the public IP of the requestor
+      responses:
+        '200':
+          description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 1.2.3.4
+        '500':
+          description: Internal server error
+  /api/v1/update:
+    post:
+      description: Update the IP for a domain
+      parameters:
+        - name: domain
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: ip
+          description: >-
+            The new IP value. Use "auto" to let the server determine the value
+            based on the requestor.
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success (IP is already correct)
+        '201': 
+          description: Success (IP was updated)
+        '400': 
+          description: Bad request
+        '401':
+          description: Invalid API key
+        '403':
+          description: Not authorized to update domain
+        '500':
+          description: Internal server error
+      security:
+        - BearerAuth:
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+

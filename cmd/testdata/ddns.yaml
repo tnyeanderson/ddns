@@ -1,0 +1,12 @@
+---
+agent:
+  serveraddress: "https://myserver.com:1234"
+  apikey: "mysuperdupersecret"
+server:
+  hostsfile: "/path/to/hostsfile"
+  allowedapikeys:
+    mysupersecretkey: "^onlythishost.com$"
+  httplistener: ":8888"
+  dnslistener: ":5333"
+  domains:
+    "domain1.haha": 4.3.2.1

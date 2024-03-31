@@ -12,23 +12,28 @@ import (
 )
 
 const (
-	// EnvServerConfigFile is a path to a YAML config file for the server.
-	EnvConfigFile = "DDNS_SERVER_CONFIG_FILE"
+	// EnvConfigFile is the path to a YAML config file for the server.
+	EnvConfigFile = "DDNS_CONFIG_FILE"
 
-	EnvAPIServer          = "DDNS_API_SERVER"
-	EnvAPIKey             = "DDNS_API_KEY"
-	EnvServerAPIKey       = "DDNS_SERVER_API_KEY"
-	EnvServerAPIKeyRegex  = "DDNS_SERVER_API_KEY_REGEX"
-	EnvServerHostsFile    = "DDNS_SERVER_HOSTS_FILE"
-	EnvServerHTTPListener = "DDNS_SERVER_HTTP_LISTENER"
-	EnvServerDNSListener  = "DDNS_SERVER_DNS_LISTENER"
+	EnvAPIServer = "DDNS_API_SERVER" // sets [Agent.ServerAddress]
+	EnvAPIKey    = "DDNS_API_KEY"    // sets [Agent.APIKey]
+
+	EnvServerAPIKey       = "DDNS_SERVER_API_KEY"       // sets a key in [Server.AllowedAPIKeys]
+	EnvServerAPIKeyRegex  = "DDNS_SERVER_API_KEY_REGEX" // sets the value for the [EnvServerAPIKey] key in [Server.AllowedAPIKeys]
+	EnvServerHostsFile    = "DDNS_SERVER_HOSTS_FILE"    // sets [Server.HostsFile]
+	EnvServerHTTPListener = "DDNS_SERVER_HTTP_LISTENER" // sets [Server.HTTPListener]
+	EnvServerDNSListener  = "DDNS_SERVER_DNS_LISTENER"  // sets [Server.DNSListener]
 )
 
+// Config contains the configuration used by the ddns CLI. It is also the data
+// structure used when unmarshaling the YAML config file.
 type Config struct {
 	Agent  *ddns.Agent
 	Server *ddns.Server
 }
 
+// Init tries to set the values in [c], first using a YAML config file (if
+// provided), then using environment variables.
 func (c *Config) Init() error {
 	if c.Agent == nil {
 		c.Agent = &ddns.Agent{}
@@ -90,14 +95,14 @@ func (c *Config) fromEnv() {
 func getEnvDocs(prefix string) string {
 	// Not a map to preserve deterministic order
 	docs := [][]string{
-		[]string{EnvConfigFile, "Path to a YAML configuration file for DDNS. See the cmd.Config struct for more info."},
-		[]string{EnvAPIServer, "(Agent) The scheme/host/port of the DDNS API server, not including the /api base path."},
-		[]string{EnvAPIKey, "(Agent) The API key used to authenticate to the DDNS API."},
-		[]string{EnvServerAPIKey, "Adds this API key to the AllowedAPIKeys map for the server."},
-		[]string{EnvServerAPIKeyRegex, fmt.Sprintf("Used as the value for the %s key in the Server.AllowedAPIKeys map.", EnvServerAPIKey)},
-		[]string{EnvServerHostsFile, "Path to the hosts file used by the server. See Server.HostsFile for more info."},
-		[]string{EnvServerHTTPListener, "The TCP listener address for the HTTP server."},
-		[]string{EnvServerDNSListener, "The TCP listener address for the DNS server."},
+		[]string{EnvConfigFile, `Path to a YAML configuration file for DDNS. See the cmd.Config struct for more info.`},
+		[]string{EnvAPIServer, fmt.Sprintf(`(Agent) The scheme/host/port of the DDNS API server, not including the /api base path (default: "%s").`, ddns.DefaultServerAddress)},
+		[]string{EnvAPIKey, `(Agent) The API key used to authenticate to the DDNS API.`},
+		[]string{EnvServerAPIKey, `This API key will be allowed by the server.`},
+		[]string{EnvServerAPIKeyRegex, fmt.Sprintf(`The regex domain matcher for %s.`, EnvServerAPIKey)},
+		[]string{EnvServerHostsFile, `Path to the hosts file used by the server. See Server.HostsFile for more info.`},
+		[]string{EnvServerHTTPListener, fmt.Sprintf(`The TCP listener address for the HTTP server (default: "%s").`, ddns.DefaultHTTPListener)},
+		[]string{EnvServerDNSListener, fmt.Sprintf(`The TCP listener address for the DNS server (default: "%s").`, ddns.DefaultDNSListener)},
 	}
 	s := &strings.Builder{}
 	for _, v := range docs {

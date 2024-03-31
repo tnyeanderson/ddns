@@ -29,7 +29,8 @@ const (
 // record for any domain (no restrictions).
 type APIKeyMatcher map[string]*regexp.Regexp
 
-// Domains maps a domain to an IP that will be returned by the DNS server.
+// Domains is a map which associates a domain to an IP that will be returned by
+// the DNS server.
 type Domains map[string]net.IP
 
 type Server struct {
@@ -38,11 +39,11 @@ type Server struct {
 	AllowedAPIKeys APIKeyMatcher
 
 	// HTTPListener is the TCP address that will be passed to
-	// [http.ListenAndServe()].
+	// [http.ListenAndServe()]. If not set, [DefaultHTTPListener] will be used.
 	HTTPListener string
 
 	// DNSListener is the network address that the DNS server will listen on. See
-	// [dns.Server].
+	// [dns.Server]. If not set, [DefaultDNSListener] will be used.
 	DNSListener string
 
 	// Domains stores the domain/IP associations for the server.
@@ -60,7 +61,8 @@ type Server struct {
 // change the DNS record for the domains matched by domainMatcher. Further
 // needs should be handled via [Server.AllowedAPIKeys] directly.  A nil
 // domainMatcher allows changing the DNS record for any domain (no
-// restrictions).
+// restrictions). If the apiKey already exists in [Server.AllowedAPIKeys], its
+// matcher will be overwritten with domainMatcher.
 func (s *Server) Allow(apiKey string, domainMatcher *regexp.Regexp) {
 	if s.AllowedAPIKeys == nil {
 		s.AllowedAPIKeys = APIKeyMatcher{}
@@ -74,6 +76,7 @@ func (s *Server) Set(domain string, ip net.IP) {
 		s.Domains = map[string]net.IP{}
 	}
 	s.Domains[domain] = ip
+
 	if s.HostsFile != "" {
 		if err := s.writeToHostsFile(); err != nil {
 			slog.Error("failed to write to hosts file", "path", s.HostsFile, "error", err.Error())
@@ -81,7 +84,7 @@ func (s *Server) Set(domain string, ip net.IP) {
 	}
 }
 
-// Load populates [s.Domains] using the hosts file file if it exists.
+// Load updates the values in [s.Domains] using the hosts file if it exists.
 func (s *Server) Load() error {
 	if s.HostsFile == "" {
 		return nil
@@ -138,7 +141,12 @@ func (s *Server) loadFromHostsFile() error {
 		return err
 	}
 
-	s.Domains = domains
+	if s.Domains == nil {
+		s.Domains = Domains{}
+	}
+	for k, v := range domains {
+		s.Domains[k] = v
+	}
 	slog.Info("loaded domains from hosts file", "path", s.HostsFile)
 	return nil
 }

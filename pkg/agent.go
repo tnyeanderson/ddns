@@ -12,7 +12,8 @@ const DefaultServerAddress = "http://localhost:3345"
 
 type Agent struct {
 	// ServerAddress is the scheme/host/port of the DDNS API server, not
-	// including the /api base path.
+	// including the /api base path. If not set, [DefaultServerAddress] will be
+	// used.
 	ServerAddress string
 
 	// APIKey will be used to authenticate to the DDNS API.

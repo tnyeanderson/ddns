@@ -1,7 +1,17 @@
 package main
 
-import "github.com/tnyeanderson/ddns/cmd"
+import (
+	"fmt"
+
+	"github.com/tnyeanderson/ddns/cmd"
+)
+
+// These get populated by goreleaser
+var (
+	version = "dev"
+	commit  = "none"
+)
 
 func main() {
-	cmd.Execute()
+	cmd.Execute(fmt.Sprintf("%s commit:%s", version, commit))
 }
